@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lens Ray Diagram Game</title>
     <style>
         * {
@@ -36,8 +36,7 @@
             align-items: center;
             color: #2d3436;
             overflow-x: hidden;
-            /* Updated touch-action to allow zooming (manipulation) but prevents double-tap zoom delay */
-            touch-action: manipulation; 
+            touch-action: pan-y;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -49,8 +48,6 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 30px;
             animation: slideIn 0.5s ease-out;
-            /* Ensure container doesn't overflow horizontally on small screens */
-            overflow: hidden; 
         }
 
         .intro-screen, .game-screen, .results-screen {
@@ -102,26 +99,6 @@
         .instructions li {
             margin: 10px 0;
             color: #2d3436;
-        }
-
-        .ray-info {
-            background: #fff3cd;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            border-left: 5px solid #ffc107;
-        }
-
-        .ray-info h4 {
-            color: #856404;
-            margin-bottom: 10px;
-            font-size: 1.2em;
-        }
-
-        .ray-info p {
-            color: #856404;
-            margin: 8px 0;
-            line-height: 1.6;
         }
 
         .btn {
@@ -231,8 +208,6 @@
             padding: 20px;
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
-            /* Allow scrolling within the canvas container if it's too big */
-            overflow: auto; 
         }
 
         canvas {
@@ -243,7 +218,7 @@
             margin: 0 auto;
             background: #fafbfc;
             max-width: 100%;
-            /* Removed touch-action: none so zooming works, will handle events in JS */
+            touch-action: none;
         }
 
         .action-buttons {
@@ -294,6 +269,7 @@
             text-align: center;
             z-index: 1000;
             min-width: 300px;
+            max-width: 500px;
             display: none;
         }
 
@@ -324,8 +300,22 @@
         }
 
         .feedback p {
-            font-size: 1.2em;
+            font-size: 1.1em;
             color: #636e72;
+            margin: 10px 0;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .feedback ul {
+            text-align: left;
+            margin: 15px 0;
+            padding-left: 20px;
+        }
+
+        .feedback li {
+            margin: 8px 0;
+            color: #e74c3c;
         }
 
         .results-summary {
@@ -413,102 +403,20 @@
                 gap: 15px;
             }
 
-            .stat {
-                font-size: 0.95em;
-            }
-
-            .stat-value {
-                font-size: 1.2em;
-            }
-
-            .timer {
-                text-align: center;
-                font-size: 1.1em;
-                padding: 8px 20px;
-            }
-
-            .game-controls {
-                justify-content: center;
-            }
-
-            .btn-small {
-                padding: 10px 18px;
-                font-size: 0.95em;
-            }
-
-            canvas {
-                width: 100% !important;
-                height: auto !important;
-                max-width: 100%;
-            }
-
             .canvas-container {
                 padding: 10px;
-            }
-
-            .instructions, .ray-info {
-                padding: 15px;
-                font-size: 0.95em;
-            }
-
-            .instructions ul, .ray-info p {
-                font-size: 0.9em;
-            }
-
-            .btn {
-                padding: 12px 30px;
-                font-size: 1em;
-            }
-
-            .mode-indicator {
-                font-size: 0.9em;
-                padding: 8px 15px;
-            }
-
-            .attempts-remaining {
-                font-size: 0.85em;
-                padding: 6px 15px;
-            }
-
-            .action-buttons {
-                gap: 10px;
             }
 
             .feedback {
                 width: 90%;
                 padding: 25px;
             }
-
-            .feedback h2 {
-                font-size: 2em;
-            }
-
-            .feedback p {
-                font-size: 1em;
-            }
-
-            .results-summary {
-                padding: 20px;
-            }
-
-            .result-stat {
-                flex-direction: column;
-                gap: 5px;
-                padding: 12px;
-            }
-
-            .result-stat-value {
-                font-size: 1.5em;
-            }
-
-            .mistakes-list {
-                padding: 15px;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Intro Screen -->
         <div class="intro-screen active">
             <h1 class="title">🔬 Lens Ray Diagram Game</h1>
             <p class="subtitle">Master the art of drawing ray diagrams!</p>
@@ -517,29 +425,17 @@
                 <h3>📋 How to Play</h3>
                 <ul>
                     <li><strong>Goal:</strong> Complete as many ray diagrams as possible in 5 minutes!</li>
-                    <li><strong>Drawing Rays:</strong> Click twice to draw a ray - once at the start, once at the end. Rays snap to the grid.</li>
-                    <li><strong>Placing the Image:</strong> After drawing 2+ rays, click "Place Image" and mark the base and top of the image.</li>
-                    <li><strong>Scoring:</strong> Get points for correct diagrams. Higher accuracy = bonus points!</li>
-                    <li><strong>Attempts:</strong> You get 3 attempts per question. Wrong rays can be deleted.</li>
-                    <li><strong>Controls:</strong> Use Undo, Skip, or End Early buttons as needed.</li>
+                    <li><strong>Drawing Rays:</strong> Click twice to draw a ray. Draw at least 2 rays to locate the image.</li>
+                    <li><strong>Placing the Image:</strong> After drawing rays, click "Place Image" and mark base and top.</li>
+                    <li><strong>Scoring:</strong> Correct image = 100 points. Bonus points for accuracy and perfect rays!</li>
+                    <li><strong>Attempts:</strong> You get 3 attempts per question.</li>
                 </ul>
-            </div>
-
-            <div class="ray-info">
-                <h4>🌟 Principal Rays for Convex Lenses:</h4>
-                <p><strong>Ray 1:</strong> Parallel to axis → passes through far focal point</p>
-                <p><strong>Ray 2:</strong> Through center → continues straight</p>
-                <p><strong>Ray 3:</strong> From near focal point → emerges parallel</p>
-                
-                <h4 style="margin-top: 15px;">🌟 Principal Rays for Concave Lenses:</h4>
-                <p><strong>Ray 1:</strong> Parallel to axis → diverges (appears to come from near focal point)</p>
-                <p><strong>Ray 2:</strong> Through center → continues straight</p>
-                <p><strong>Ray 3:</strong> From near focal point to lens → straight line continuation</p>
             </div>
 
             <button class="btn btn-center" onclick="startGame()">Start Game! 🚀</button>
         </div>
 
+        <!-- Game Screen -->
         <div class="game-screen">
             <div class="game-header">
                 <div class="stats">
@@ -568,7 +464,7 @@
             </div>
 
             <div class="action-buttons">
-                <div class="mode-indicator" id="modeIndicator">Drawing Rays</div>
+                <div class="mode-indicator" id="modeIndicator">Drawing Rays (Draw 3 rays)</div>
                 <span class="attempts-remaining" id="attemptsIndicator" style="display: none;">Attempts: 3</span>
                 <button class="btn btn-small btn-undo" onclick="undoLastRay()" id="undoBtn">↶ Undo Ray</button>
                 <button class="btn btn-action" onclick="startPlacingImage()" id="placeImageBtn" style="display: none;">Place Image ✓</button>
@@ -576,6 +472,7 @@
             </div>
         </div>
 
+        <!-- Results Screen -->
         <div class="results-screen">
             <h1 class="title">🎯 Game Complete!</h1>
             <p class="subtitle">Here's how you did:</p>
@@ -610,22 +507,26 @@
             <button class="btn btn-center" onclick="location.reload()">Play Again! 🔄</button>
         </div>
 
+        <!-- Feedback popup -->
         <div class="feedback" id="feedback">
             <h2 id="feedbackTitle">Correct!</h2>
             <p id="feedbackText">Great job!</p>
+            <ul id="feedbackRayErrors" style="display: none;"></ul>
         </div>
     </div>
 
     <script>
         let canvas, ctx, GRID_SIZE = 20;
         let gameState;
+        let clickCount = 0;
+        let firstClick = null;
         
         document.addEventListener('DOMContentLoaded', function() {
             canvas = document.getElementById('gameCanvas');
             ctx = canvas.getContext('2d');
             
             gameState = {
-                timeRemaining: 300, // 5 minutes in seconds
+                timeRemaining: 300,
                 score: 0,
                 correctCount: 0,
                 questionCount: 0,
@@ -633,35 +534,29 @@
                 currentQuestion: null,
                 rays: [],
                 imagePoints: [],
-                mode: 'drawingRays', // 'drawingRays' or 'placingImage'
+                mode: 'drawingRays',
                 attemptsRemaining: 3,
                 mistakes: [],
                 timerInterval: null
             };
             
             window.addEventListener('resize', resizeCanvas);
-            window.addEventListener('load', resizeCanvas);
             
-            // Add canvas event listeners
             canvas.addEventListener('click', handleCanvasInteraction);
             canvas.addEventListener('touchend', handleCanvasInteraction);
-            
-            // Note: removed e.preventDefault() for touchstart/move to allow zooming if needed,
-            // but we handle touch logic in handleCanvasInteraction
+            canvas.addEventListener('touchstart', (e) => e.preventDefault());
+            canvas.addEventListener('touchmove', (e) => e.preventDefault());
         });
         
-        // Responsive canvas setup
         function resizeCanvas() {
             const container = canvas.parentElement;
-            const containerWidth = container.clientWidth - 40; // Account for padding
+            const containerWidth = container.clientWidth - 40;
             
             if (window.innerWidth <= 768) {
-                // Mobile
                 canvas.width = Math.min(containerWidth, 800);
                 canvas.height = Math.min(canvas.width * 0.75, 600);
-                GRID_SIZE = Math.max(canvas.width / 30, 20); 
+                GRID_SIZE = Math.max(canvas.width / 30, 20);
             } else {
-                // Desktop
                 canvas.width = 1000;
                 canvas.height = 600;
                 GRID_SIZE = 20;
@@ -709,73 +604,65 @@
             document.getElementById('questionNum').textContent = gameState.questionCount;
             document.getElementById('placeImageBtn').style.display = 'none';
             document.getElementById('cancelImageBtn').style.display = 'none';
-            document.getElementById('modeIndicator').textContent = 'Drawing Rays';
+            document.getElementById('modeIndicator').textContent = 'Drawing Rays (Draw at least 2)';
             document.getElementById('attemptsIndicator').style.display = 'none';
             
             const lensType = Math.random() < 0.5 ? 'convex' : 'concave';
             
-            // Focal length scaled to canvas size
             const maxFocalLength = Math.min((canvas.width / 2) * 0.4, 150);
             const minFocalLength = Math.max(GRID_SIZE * 2, 50);
             
             let focalLength = minFocalLength + Math.floor(Math.random() * (maxFocalLength - minFocalLength));
-            focalLength = Math.round(focalLength / GRID_SIZE) * GRID_SIZE; // Snap to grid
-            
-            let objectDistance, objectHeight;
+            focalLength = Math.round(focalLength / GRID_SIZE) * GRID_SIZE;
             
             const maxObjectDistance = (canvas.width / 2) * 0.5;
+            let objectDistance;
             
             if (lensType === 'convex') {
-                // Avoid object at focal point
-                if (Math.random() < 0.3) {
-                    // Object inside focal length
+                if (Math.random() < 0.5) {
                     objectDistance = GRID_SIZE * 2 + Math.floor(Math.random() * (focalLength - GRID_SIZE * 4));
                 } else {
-                    // Object outside focal length
                     objectDistance = focalLength + GRID_SIZE * 2 + Math.floor(Math.random() * Math.min(100, maxObjectDistance - focalLength));
                 }
             } else {
-                // Concave lens - any position works
                 objectDistance = GRID_SIZE * 3 + Math.floor(Math.random() * Math.min(150, maxObjectDistance));
             }
             
-            // Snap to grid
             objectDistance = Math.round(objectDistance / GRID_SIZE) * GRID_SIZE;
             
-            // Object height scaled to canvas
             const maxInitialHeight = Math.min((canvas.height / 2) * 0.3, 60);
             const minInitialHeight = GRID_SIZE * 2;
             
-            objectHeight = minInitialHeight + Math.floor(Math.random() * (maxInitialHeight - minInitialHeight));
+            let objectHeight = minInitialHeight + Math.floor(Math.random() * (maxInitialHeight - minInitialHeight));
             objectHeight = Math.round(objectHeight / GRID_SIZE) * GRID_SIZE;
             
-            // Ensure object height fits on screen
             const maxObjectHeight = (canvas.height / 2) - GRID_SIZE * 5;
             if (objectHeight > maxObjectHeight) {
                 objectHeight = Math.round(maxObjectHeight / GRID_SIZE) * GRID_SIZE;
             }
             
-            // For convex lenses, check that the image will be on screen
+            // Validate image will be on screen
             if (lensType === 'convex') {
                 const u = objectDistance;
                 const f = focalLength;
                 
-                // Maximum safe distance for image to stay on screen
                 const maxImageDistance = (canvas.width / 2) - GRID_SIZE * 3;
                 
-                if (Math.abs(u - f) > 5) { // Not at focal point
+                if (Math.abs(u - f) > 5) {
                     const v = (f * u) / (u - f);
                     const m = v / u;
                     const imageHeight = Math.abs(m * objectHeight);
                     
                     if (u > f) {
                         const imageDistance = Math.abs(v);
+                        
                         if (imageDistance > maxImageDistance || imageHeight > (canvas.height / 2) - GRID_SIZE * 3) {
                             objectDistance = f + Math.min(focalLength * 0.8, 60);
                             objectDistance = Math.round(objectDistance / GRID_SIZE) * GRID_SIZE;
                         }
                     } else {
                         const imageDistance = Math.abs(v);
+                        
                         if (imageDistance > maxImageDistance || imageHeight > (canvas.height / 2) - GRID_SIZE * 3) {
                             objectDistance = Math.max(focalLength * 0.3, GRID_SIZE * 2);
                             objectDistance = Math.round(objectDistance / GRID_SIZE) * GRID_SIZE;
@@ -783,7 +670,6 @@
                     }
                 }
             } else {
-                // For concave lenses
                 const u = objectDistance;
                 const f = focalLength;
                 const v = (f * u) / (u + f);
@@ -832,7 +718,7 @@
             
             const q = gameState.currentQuestion;
             
-            // Draw principal axis (dashed)
+            // Draw principal axis
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 2;
             ctx.setLineDash([10, 5]);
@@ -843,20 +729,17 @@
             ctx.setLineDash([]);
             
             // Draw lens
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 4;
             const lensHeight = Math.min(canvas.height * 0.5, 150);
             
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.moveTo(q.lensX, q.lensY - lensHeight);
             ctx.lineTo(q.lensX, q.lensY + lensHeight);
             ctx.stroke();
             
-            // Draw lens arrows
             const arrowSize = Math.max(20, GRID_SIZE * 1.2);
             ctx.fillStyle = '#000';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 3;
             
             if (q.lensType === 'convex') {
                 drawLensArrowhead(ctx, q.lensX, q.lensY - lensHeight, 'up', arrowSize);
@@ -879,8 +762,8 @@
             ctx.arc(focalPointRight, q.lensY, focalPointSize, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.fillStyle = '#000';
             const fontSize = Math.max(12, GRID_SIZE * 0.7);
+            ctx.fillStyle = '#000';
             ctx.font = `bold ${fontSize}px sans-serif`;
             ctx.fillText('F', focalPointLeft - 5, q.lensY - 10);
             ctx.fillText('F', focalPointRight - 5, q.lensY - 10);
@@ -897,169 +780,10 @@
             
             // Draw rays
             gameState.rays.forEach((ray, index) => {
-                const colors = ['#e74c3c', '#2ecc71', '#f39c12'];
-                const rayColor = colors[index % 3];
-                
-                const passesThroughCenter = checkIfRayThroughCenter(ray, q);
-                const passesThroughNearFocal = checkIfRayThroughNearFocalPoint(ray, q);
-                const isParallel = checkIfParallelRay(ray, q);
-                const isExitRay = (Math.abs(ray.x1 - q.lensX) < GRID_SIZE && ray.x2 > ray.x1);
-                
-                // --- CUSTOM BEHAVIOR FOR CONCAVE FOCAL RAYS (DASHED -> STRAIGHT) ---
-                if (passesThroughNearFocal && passesThroughNearFocal.type === 'nearFocal') {
-                    // Draw the F-to-lens portion as dashed
-                    ctx.strokeStyle = rayColor;
-                    ctx.lineWidth = 2.5;
-                    ctx.setLineDash([5, 5]);
-                    ctx.beginPath();
-                    ctx.moveTo(ray.x1, ray.y1);
-                    ctx.lineTo(ray.x2, ray.y2);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                } 
-                else if (passesThroughNearFocal && passesThroughNearFocal.type === 'convexInsideFocalNearPoint') {
-                    // Convex inside focal case (skip standard draw)
-                } 
-                // --- GENERAL RAY DRAWING ---
-                else {
-                    drawRayArrow(ctx, ray.x1, ray.y1, ray.x2, ray.y2, 8, rayColor, 2.5);
-                }
-
-                // --- EXTRAPOLATION AND EXTENSION LOGIC ---
-
-                // 1. EXTEND EXIT RAYS (Fix for short Green Ray)
-                // If a ray starts at the lens and goes right, automatically extend it to canvas edge
-                if (isExitRay) {
-                     // Calculate slope
-                     const dx = ray.x2 - ray.x1;
-                     const dy = ray.y2 - ray.y1;
-                     if (dx !== 0) {
-                        const m = dy / dx;
-                        const finalX = canvas.width;
-                        const finalY = ray.y1 + m * (finalX - ray.x1);
-                        
-                        // Draw extension over the user's short line
-                        ctx.strokeStyle = rayColor;
-                        ctx.lineWidth = 2.5;
-                        ctx.beginPath();
-                        ctx.moveTo(ray.x1, ray.y1); // Start exactly at lens
-                        ctx.lineTo(finalX, finalY);
-                        ctx.stroke();
-                     }
-                }
-                
-                const rayNeedsExtrapolation = shouldExtrapolateRay(ray, q) || passesThroughCenter || passesThroughNearFocal;
-                
-                if (rayNeedsExtrapolation) {
-                    const dx = ray.x2 - ray.x1;
-                    const dy = ray.y2 - ray.y1;
-                    const length = Math.sqrt(dx * dx + dy * dy);
-                    const dirX = dx / length;
-                    const dirY = dy / length;
-                    
-                    let extrapX, extrapY;
-                    
-                    if (rayNeedsExtrapolation.type === 'convexInsideFocalNearPoint') {
-                         // ... (existing convex logic) ...
-                        const focalX = rayNeedsExtrapolation.focalX;
-                        const focalY = rayNeedsExtrapolation.focalY;
-                        const objectX = rayNeedsExtrapolation.objectX;
-                        const objectTopY = rayNeedsExtrapolation.objectTopY;
-                        
-                        ctx.strokeStyle = rayColor;
-                        ctx.lineWidth = 2;
-                        ctx.setLineDash([5, 5]);
-                        ctx.beginPath();
-                        ctx.moveTo(focalX, focalY);
-                        ctx.lineTo(objectX, objectTopY);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                        
-                        const dx2 = objectX - focalX;
-                        const dy2 = objectTopY - focalY;
-                        const t = (q.lensX - objectX) / dx2;
-                        const yAtLens = objectTopY + t * dy2;
-                        
-                        drawRayArrow(ctx, objectX, objectTopY, q.lensX, yAtLens, 8, rayColor, 2.5);
-                        
-                        ctx.strokeStyle = rayColor;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(q.lensX, yAtLens);
-                        ctx.lineTo(canvas.width, yAtLens);
-                        ctx.stroke();
-                        
-                    } else if (rayNeedsExtrapolation.type === 'nearFocal') {
-                        // --- MODIFIED CONCAVE BEHAVIOR ---
-                        // "Dashed (virtual) and then extrapolate and become a real ray... continued along the same trajectory"
-                        const yAtLens = rayNeedsExtrapolation.yAtLens;
-                        
-                        // Calculate incoming slope (from F to Lens)
-                        const slopeY = (ray.y2 - ray.y1);
-                        const slopeX = (ray.x2 - ray.x1);
-                        const m = slopeY / slopeX;
-                        
-                        // Extend straight (same trajectory)
-                        extrapX = canvas.width;
-                        extrapY = yAtLens + m * (extrapX - q.lensX);
-                        
-                        ctx.strokeStyle = rayColor;
-                        ctx.lineWidth = 2.5;
-                        ctx.beginPath();
-                        ctx.moveTo(q.lensX, yAtLens);
-                        ctx.lineTo(extrapX, extrapY);
-                        ctx.stroke();
-                        
-                    } else if (rayNeedsExtrapolation.type === 'center') {
-                        // Center ray continues straight
-                        const extrapLength = 500;
-                        extrapX = ray.x2 + dirX * extrapLength;
-                        extrapY = ray.y2 + dirY * extrapLength;
-                        
-                        ctx.strokeStyle = rayColor;
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(ray.x2, ray.y2);
-                        ctx.lineTo(extrapX, extrapY);
-                        ctx.stroke();
-                    } else if (rayNeedsExtrapolation.type === 'virtual') {
-                        // Standard virtual extrapolation (backwards)
-                        const extrapLength = 500;
-                        extrapX = ray.x1 - dirX * extrapLength;
-                        extrapY = ray.y1 - dirY * extrapLength;
-                        
-                        ctx.strokeStyle = rayColor;
-                        ctx.lineWidth = 2;
-                        ctx.setLineDash([5, 5]);
-                        ctx.beginPath();
-                        ctx.moveTo(ray.x1, ray.y1);
-                        ctx.lineTo(extrapX, extrapY);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                    }
-                }
-                
-                // For concave lens, parallel rays
-                if (q.lensType === 'concave' && isParallel && ray.x2 >= q.lensX) {
-                    // --- REMOVED VIRTUAL BACK-TRACE FOR PARALLEL RAYS (Per Request) ---
-                    // The dotted line drawing logic here has been removed.
-                }
-                
-                // For convex lens with object inside focal length
-                if (q.lensType === 'convex' && q.objectDistance < q.focalLength && isParallel && ray.x2 > q.lensX) {
-                    const farFocalX = q.lensX + q.focalLength;
-                    ctx.strokeStyle = rayColor;
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([5, 5]);
-                    ctx.beginPath();
-                    ctx.moveTo(ray.x1, ray.y1);
-                    ctx.lineTo(0, ray.y1);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                }
+                drawRay(ray, index);
             });
             
-            // Draw image points if in placing mode
+            // Draw image points
             if (gameState.mode === 'placingImage' && gameState.imagePoints.length > 0) {
                 gameState.imagePoints.forEach(point => {
                     ctx.fillStyle = '#9b59b6';
@@ -1069,7 +793,9 @@
                 });
                 
                 if (gameState.imagePoints.length === 2) {
+                    const q = gameState.currentQuestion;
                     let basePoint, topPoint;
+                    
                     if (Math.abs(gameState.imagePoints[0].y - q.lensY) < Math.abs(gameState.imagePoints[1].y - q.lensY)) {
                         basePoint = gameState.imagePoints[0];
                         topPoint = gameState.imagePoints[1];
@@ -1077,99 +803,335 @@
                         basePoint = gameState.imagePoints[1];
                         topPoint = gameState.imagePoints[0];
                     }
+                    
                     drawObjectImageArrow(ctx, basePoint.x, basePoint.y, topPoint.x, topPoint.y, 10, '#9b59b6', 3);
                 }
             }
         }
 
-        function checkIfRayThroughCenter(ray, q) {
-            const tolerance = GRID_SIZE * 2;
-            if (Math.abs(ray.x1 - q.lensX) < tolerance || Math.abs(ray.x2 - q.lensX) < tolerance) {
-                const t = (q.lensX - ray.x1) / (ray.x2 - ray.x1);
-                const yAtLens = ray.y1 + t * (ray.y2 - ray.y1);
-                if (Math.abs(yAtLens - q.lensY) < tolerance) {
-                    return { type: 'center' };
-                }
+        function drawRay(ray, index) {
+            const q = gameState.currentQuestion;
+            const colors = ['#e74c3c', '#2ecc71', '#f39c12'];
+            const color = colors[index % 3];
+            
+            // Analyze what type of ray this is
+            const rayType = analyzeRayType(ray, q);
+            
+            // Draw based on ray type
+            if (rayType.constructionLine) {
+                // Draw construction line (dotted)
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(rayType.constructionLine.x1, rayType.constructionLine.y1);
+                ctx.lineTo(rayType.constructionLine.x2, rayType.constructionLine.y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
             }
-            return null;
+            
+            if (rayType.mainRay) {
+                // Draw main ray (solid with arrow)
+                drawRayArrow(ctx, rayType.mainRay.x1, rayType.mainRay.y1, 
+                           rayType.mainRay.x2, rayType.mainRay.y2, 8, color, 2.5);
+            }
+            
+            if (rayType.virtualExtension) {
+                // Draw virtual extension (dotted)
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(rayType.virtualExtension.x1, rayType.virtualExtension.y1);
+                ctx.lineTo(rayType.virtualExtension.x2, rayType.virtualExtension.y2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            if (rayType.realExtension) {
+                // Draw real extension (solid)
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(rayType.realExtension.x1, rayType.realExtension.y1);
+                ctx.lineTo(rayType.realExtension.x2, rayType.realExtension.y2);
+                ctx.stroke();
+            }
         }
 
-        function checkIfRayThroughNearFocalPoint(ray, q) {
-            const tolerance = GRID_SIZE * 2;
+        function analyzeRayType(ray, q) {
+            const result = {
+                mainRay: null,
+                constructionLine: null,
+                virtualExtension: null,
+                realExtension: null
+            };
             
-            if (q.lensType === 'concave') {
-                const nearFocalX = q.lensX - q.focalLength;
-                const nearFocalY = q.lensY;
-                
-                if (ray.x1 !== ray.x2) {
-                    const startsAtFocal = Math.abs(ray.x1 - nearFocalX) < tolerance && 
-                                         Math.abs(ray.y1 - nearFocalY) < tolerance;
-                    const endsAtLens = Math.abs(ray.x2 - q.lensX) < tolerance;
+            const tolerance = GRID_SIZE * 1.5;
+            const objX = q.lensX - q.objectDistance;
+            const objTopY = q.lensY - q.objectHeight;
+            const nearF = { x: q.lensX - q.focalLength, y: q.lensY };
+            const farF = { x: q.lensX + q.focalLength, y: q.lensY };
+            
+            const isVirtualImage = q.lensType === 'convex' && q.objectDistance < q.focalLength;
+            const isConcave = q.lensType === 'concave';
+            
+            // Check click positions
+            const click1AtLens = Math.abs(ray.x1 - q.lensX) < tolerance;
+            const click2AtLens = Math.abs(ray.x2 - q.lensX) < tolerance;
+            const click1AtObjTop = Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance;
+            const click2AtObjTop = Math.abs(ray.x2 - objX) < tolerance && Math.abs(ray.y2 - objTopY) < tolerance;
+            const click1AtNearF = Math.abs(ray.x1 - nearF.x) < tolerance && Math.abs(ray.y1 - nearF.y) < tolerance;
+            const click2AtNearF = Math.abs(ray.x2 - nearF.x) < tolerance && Math.abs(ray.y2 - nearF.y) < tolerance;
+            const click1AtFarF = Math.abs(ray.x1 - farF.x) < tolerance && Math.abs(ray.y1 - farF.y) < tolerance;
+            const click2AtFarF = Math.abs(ray.x2 - farF.x) < tolerance && Math.abs(ray.y2 - farF.y) < tolerance;
+            const click1AtCenter = click1AtLens && Math.abs(ray.y1 - q.lensY) < tolerance;
+            const click2AtCenter = click2AtLens && Math.abs(ray.y2 - q.lensY) < tolerance;
+            
+            // Check for special ray4 snapping points
+            const ray4Point = findRay4EndPoint(q);
+            const click1AtRay4 = ray4Point && Math.abs(ray.x1 - ray4Point.x) < tolerance && Math.abs(ray.y1 - ray4Point.y) < tolerance;
+            
+            const ray13Point = findRay13EndPoint(q);
+            const click1AtRay13 = ray13Point && Math.abs(ray.x1 - ray13Point.x) < tolerance && Math.abs(ray.y1 - ray13Point.y) < tolerance;
+            
+            // CONVEX LENS - REAL IMAGE
+            if (q.lensType === 'convex' && q.objectDistance > q.focalLength) {
+                // Rule 2: Lens → Far F
+                if (click1AtLens && click2AtFarF) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                    // Extrapolate in same direction
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const dirX = dx / length;
+                    const dirY = dy / length;
+                    const extendDist = 500;
+                    result.realExtension = { 
+                        x1: ray.x2, y1: ray.y2, 
+                        x2: ray.x2 + dirX * extendDist, y2: ray.y2 + dirY * extendDist 
+                    };
+                }
+                // Rule 3: Object top → Center
+                else if (click1AtObjTop && click2AtCenter) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                    // Extrapolate in same direction
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const dirX = dx / length;
+                    const dirY = dy / length;
+                    const extendDist = 500;
+                    result.realExtension = { 
+                        x1: ray.x2, y1: ray.y2, 
+                        x2: ray.x2 + dirX * extendDist, y2: ray.y2 + dirY * extendDist 
+                    };
+                }
+                // Rule 4: Object top → Near F
+                else if (click1AtObjTop && click2AtNearF) {
+                    // Calculate intersection with lens
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const t = (q.lensX - ray.x1) / dx;
+                    const yAtLens = ray.y1 + t * dy;
                     
-                    if (startsAtFocal && endsAtLens) {
-                        return { 
-                            type: 'nearFocal',
-                            focalX: nearFocalX,
-                            focalY: nearFocalY,
-                            yAtLens: ray.y2
-                        };
-                    }
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: q.lensX, y2: yAtLens };
+                }
+                // Rule 5: Lens (ray4 end) → parallel
+                else if (click1AtRay4 && isParallelish(ray, q.lensY)) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: canvas.width, y2: ray.y1 };
+                }
+                // Default
+                else {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
                 }
             }
-            
-            if (q.lensType === 'convex' && q.objectDistance < q.focalLength) {
-                const nearFocalX = q.lensX - q.focalLength;
-                const nearFocalY = q.lensY;
-                const objectX = q.lensX - q.objectDistance;
-                const objectTopY = q.lensY - q.objectHeight;
-                
-                if (ray.x1 !== ray.x2) {
-                    const startsAtFocal = Math.abs(ray.x1 - nearFocalX) < tolerance && 
-                                         Math.abs(ray.y1 - nearFocalY) < tolerance;
-                    const goesTowardObject = ray.x2 < ray.x1 && ray.x2 > objectX - tolerance;
+            // CONVEX LENS - VIRTUAL IMAGE
+            else if (q.lensType === 'convex' && q.objectDistance < q.focalLength) {
+                // Rule 6: Lens → Far F
+                if (click1AtLens && click2AtFarF) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                    // Extrapolate in same direction (forward and backward)
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const dirX = dx / length;
+                    const dirY = dy / length;
+                    const extendDist = 500;
+                    result.realExtension = { 
+                        x1: ray.x2, y1: ray.y2, 
+                        x2: ray.x2 + dirX * extendDist, y2: ray.y2 + dirY * extendDist 
+                    };
+                    result.virtualExtension = { 
+                        x1: ray.x1, y1: ray.y1, 
+                        x2: ray.x1 - dirX * extendDist, y2: ray.y1 - dirY * extendDist 
+                    };
+                }
+                // Rule 7: Object top → Center
+                else if (click1AtObjTop && click2AtCenter) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                    // Extrapolate in same direction (forward and backward)
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const dirX = dx / length;
+                    const dirY = dy / length;
+                    const extendDist = 500;
+                    result.realExtension = { 
+                        x1: ray.x2, y1: ray.y2, 
+                        x2: ray.x2 + dirX * extendDist, y2: ray.y2 + dirY * extendDist 
+                    };
+                    result.virtualExtension = { 
+                        x1: ray.x1, y1: ray.y1, 
+                        x2: ray.x1 - dirX * extendDist, y2: ray.y1 - dirY * extendDist 
+                    };
+                }
+                // Rule 8: Near F → Object top
+                else if (click1AtNearF && click2AtObjTop) {
+                    result.constructionLine = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
                     
-                    if (startsAtFocal && goesTowardObject) {
-                        return {
-                            type: 'convexInsideFocalNearPoint',
-                            focalX: nearFocalX,
-                            focalY: nearFocalY,
-                            objectX: objectX,
-                            objectTopY: objectTopY
-                        };
-                    }
+                    // Calculate ray from object to lens
+                    const dx = objX - nearF.x;
+                    const dy = objTopY - nearF.y;
+                    const t = (q.lensX - objX) / dx;
+                    const yAtLens = objTopY + t * dy;
+                    
+                    result.mainRay = { x1: objX, y1: objTopY, x2: q.lensX, y2: yAtLens };
+                }
+                // Rule 9: Lens (ray8 end) → parallel
+                else if (click1AtRay4 && isParallelish(ray, q.lensY)) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: canvas.width, y2: ray.y1 };
+                    result.virtualExtension = { x1: ray.x1, y1: ray.y1, x2: 0, y2: ray.y1 };
+                }
+                // Default
+                else {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                }
+            }
+            // CONCAVE LENS
+            else if (q.lensType === 'concave') {
+                // Rule 10: Object top → Lens (parallel)
+                if (click1AtObjTop && click2AtLens && Math.abs(ray.y2 - ray.y1) < tolerance) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                }
+                // Rule 11: Near F → Lens (parallel to object top)
+                else if (click1AtNearF && click2AtLens) {
+                    // Dotted construction line from near F to lens
+                    result.constructionLine = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                    // Real ray extends from lens in same direction
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const dirX = dx / length;
+                    const dirY = dy / length;
+                    const extendDist = 500;
+                    result.realExtension = { 
+                        x1: ray.x2, y1: ray.y2, 
+                        x2: ray.x2 + dirX * extendDist, y2: ray.y2 + dirY * extendDist 
+                    };
+                }
+                // Rule 12: Object top → Center
+                else if (click1AtObjTop && click2AtCenter) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                    // Extrapolate in same direction (forward and backward)
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const length = Math.sqrt(dx * dx + dy * dy);
+                    const dirX = dx / length;
+                    const dirY = dy / length;
+                    const extendDist = 500;
+                    result.realExtension = { 
+                        x1: ray.x2, y1: ray.y2, 
+                        x2: ray.x2 + dirX * extendDist, y2: ray.y2 + dirY * extendDist 
+                    };
+                    result.virtualExtension = { 
+                        x1: ray.x1, y1: ray.y1, 
+                        x2: ray.x1 - dirX * extendDist, y2: ray.y1 - dirY * extendDist 
+                    };
+                }
+                // Rule 13: Object top → Far F
+                else if (click1AtObjTop && click2AtFarF) {
+                    // Calculate where ray hits lens
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const t = (q.lensX - ray.x1) / dx;
+                    const yAtLens = ray.y1 + t * dy;
+                    
+                    // Real ray from object to lens
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: q.lensX, y2: yAtLens };
+                    // Construction line from lens to far F
+                    result.constructionLine = { x1: q.lensX, y1: yAtLens, x2: farF.x, y2: farF.y };
+                    // No extrapolation beyond far F
+                }
+                // Rule 14: Lens (ray13 end) → parallel right
+                else if (click1AtRay13 && isParallelish(ray, q.lensY) && ray.x2 > ray.x1) {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: canvas.width, y2: ray.y1 };
+                    result.virtualExtension = { x1: ray.x1, y1: ray.y1, x2: 0, y2: ray.y1 };
+                }
+                // Default
+                else {
+                    result.mainRay = { x1: ray.x1, y1: ray.y1, x2: ray.x2, y2: ray.y2 };
+                }
+            }
+            
+            return result;
+        }
+
+        function isParallelish(ray, axisY) {
+            const tolerance = GRID_SIZE * 2;
+            return Math.abs(ray.y2 - axisY) < tolerance && Math.abs(ray.y1 - axisY) < tolerance;
+        }
+
+        function findRay4EndPoint(q) {
+            // Find where ray from object top to near F hits lens
+            const objX = q.lensX - q.objectDistance;
+            const objTopY = q.lensY - q.objectHeight;
+            const nearF = { x: q.lensX - q.focalLength, y: q.lensY };
+            
+            for (const ray of gameState.rays) {
+                const tolerance = GRID_SIZE * 1.5;
+                const click1AtObjTop = Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance;
+                const click2AtNearF = Math.abs(ray.x2 - nearF.x) < tolerance && Math.abs(ray.y2 - nearF.y) < tolerance;
+                
+                if (click1AtObjTop && click2AtNearF) {
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const t = (q.lensX - ray.x1) / dx;
+                    const yAtLens = ray.y1 + t * dy;
+                    return { x: q.lensX, y: yAtLens };
                 }
             }
             
             return null;
         }
 
-        function checkIfParallelRay(ray, q) {
-            const tolerance = GRID_SIZE * 1;
-            if (Math.abs(ray.y2 - ray.y1) < tolerance) {
-                return { type: 'parallel', yLevel: ray.y1 };
-            }
-            return null;
-        }
-
-        function shouldExtrapolateRay(ray, q) {
-            const tolerance = GRID_SIZE * 2;
-            if (q.lensType === 'concave') {
-                if (ray.x2 > q.lensX - tolerance) {
-                    return { type: 'virtual' };
-                }
-            } else {
-                if (q.objectDistance < q.focalLength) {
-                    if (ray.x2 > q.lensX - tolerance) {
-                        return { type: 'virtual' };
-                    }
+        function findRay13EndPoint(q) {
+            // Find where ray from object top to far F hits lens (concave)
+            const objX = q.lensX - q.objectDistance;
+            const objTopY = q.lensY - q.objectHeight;
+            const farF = { x: q.lensX + q.focalLength, y: q.lensY };
+            
+            for (const ray of gameState.rays) {
+                const tolerance = GRID_SIZE * 1.5;
+                const click1AtObjTop = Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance;
+                const click2AtFarF = Math.abs(ray.x2 - farF.x) < tolerance && Math.abs(ray.y2 - farF.y) < tolerance;
+                
+                if (click1AtObjTop && click2AtFarF) {
+                    const dx = ray.x2 - ray.x1;
+                    const dy = ray.y2 - ray.y1;
+                    const t = (q.lensX - ray.x1) / dx;
+                    const yAtLens = ray.y1 + t * dy;
+                    return { x: q.lensX, y: yAtLens };
                 }
             }
+            
             return null;
         }
 
         function drawLensArrowhead(ctx, x, y, direction, size) {
             ctx.fillStyle = '#000';
             ctx.beginPath();
+            
             if (direction === 'up') {
                 ctx.moveTo(x, y - size);
                 ctx.lineTo(x - size/2, y);
@@ -1179,20 +1141,25 @@
                 ctx.lineTo(x - size/2, y);
                 ctx.lineTo(x + size/2, y);
             }
+            
             ctx.closePath();
             ctx.fill();
         }
 
         function drawObjectImageArrow(ctx, x1, y1, x2, y2, arrowSize, color, lineWidth = 2) {
             const responsiveArrowSize = Math.max(arrowSize, GRID_SIZE * 0.5);
+            
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
             ctx.lineWidth = lineWidth;
+            
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
+            
             const angle = Math.atan2(y2 - y1, x2 - x1);
+            
             ctx.beginPath();
             ctx.moveTo(x2, y2);
             ctx.lineTo(x2 - responsiveArrowSize * Math.cos(angle - Math.PI / 6), 
@@ -1205,16 +1172,20 @@
 
         function drawRayArrow(ctx, x1, y1, x2, y2, arrowSize, color, lineWidth = 2) {
             const responsiveArrowSize = Math.max(arrowSize, GRID_SIZE * 0.4);
+            
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
             ctx.lineWidth = lineWidth;
+            
             ctx.beginPath();
             ctx.moveTo(x1, y1);
             ctx.lineTo(x2, y2);
             ctx.stroke();
+            
             const midX = (x1 + x2) / 2;
             const midY = (y1 + y2) / 2;
             const angle = Math.atan2(y2 - y1, x2 - x1);
+            
             ctx.beginPath();
             ctx.moveTo(midX, midY);
             ctx.lineTo(midX - responsiveArrowSize * Math.cos(angle - Math.PI / 6), 
@@ -1232,78 +1203,113 @@
             };
         }
 
-        let clickCount = 0;
-        let firstClick = null;
-
         function handleCanvasInteraction(e) {
-            // Only prevent default if it's not a pinch zoom gesture (requires >1 touch)
-            if (e.type === 'touchmove' && e.touches.length > 1) return;
+            e.preventDefault();
             
-            // Allow default zoom, but we need to handle coordinates properly
-            if (e.type === 'click' || e.type === 'touchend') {
-                const rect = canvas.getBoundingClientRect();
-                let x, y;
-                
-                if (e.type === 'touchend') {
-                    // For touchend, we use changedTouches
-                    const touch = e.changedTouches[0];
-                    x = touch.clientX - rect.left;
-                    y = touch.clientY - rect.top;
+            const rect = canvas.getBoundingClientRect();
+            let x, y;
+            
+            if (e.type.startsWith('touch')) {
+                const touch = e.touches[0] || e.changedTouches[0];
+                x = touch.clientX - rect.left;
+                y = touch.clientY - rect.top;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            }
+            
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            x *= scaleX;
+            y *= scaleY;
+            
+            let snapped = snapToGrid(x, y);
+            
+            // Check for special snapping points
+            const q = gameState.currentQuestion;
+            const tolerance = GRID_SIZE * 1.5;
+            
+            // Check if clicking near ray4/ray8 end point (for rules 5 & 9)
+            const ray4Point = findRay4EndPoint(q);
+            if (ray4Point && Math.abs(x - ray4Point.x) < tolerance && Math.abs(y - ray4Point.y) < tolerance) {
+                snapped = ray4Point; // Snap to exact ray4 end point
+            }
+            
+            // Check if clicking near ray13 end point (for rules 11 & 14)
+            const ray13Point = findRay13EndPoint(q);
+            if (ray13Point && Math.abs(x - ray13Point.x) < tolerance && Math.abs(y - ray13Point.y) < tolerance) {
+                snapped = ray13Point; // Snap to exact ray13 end point
+            }
+            
+            if (gameState.mode === 'drawingRays') {
+                if (clickCount === 0) {
+                    firstClick = snapped;
+                    clickCount = 1;
                     
-                    // Basic debounce for touch vs click
-                    e.preventDefault();
+                    ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(snapped.x, snapped.y, 10, 0, Math.PI * 2);
+                    ctx.fill();
                 } else {
-                    x = e.clientX - rect.left;
-                    y = e.clientY - rect.top;
-                }
-                
-                // Scale coordinates
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                x *= scaleX;
-                y *= scaleY;
-                
-                const snapped = snapToGrid(x, y);
-                
-                if (gameState.mode === 'drawingRays') {
-                    if (clickCount === 0) {
-                        firstClick = snapped;
-                        clickCount = 1;
-                        ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
-                        ctx.beginPath();
-                        ctx.arc(snapped.x, snapped.y, 10, 0, Math.PI * 2);
-                        ctx.fill();
-                    } else {
-                        gameState.rays.push({
-                            x1: firstClick.x,
-                            y1: firstClick.y,
-                            x2: snapped.x,
-                            y2: snapped.y
-                        });
-                        clickCount = 0;
-                        firstClick = null;
-                        
+                    // Check if second click should snap to parallel (rules 5, 9, 14)
+                    const isFromRay4 = ray4Point && Math.abs(firstClick.x - ray4Point.x) < tolerance && 
+                                       Math.abs(firstClick.y - ray4Point.y) < tolerance;
+                    const isFromRay13 = ray13Point && Math.abs(firstClick.x - ray13Point.x) < tolerance && 
+                                        Math.abs(firstClick.y - ray13Point.y) < tolerance;
+                    
+                    if ((isFromRay4 || isFromRay13) && Math.abs(y - q.lensY) < GRID_SIZE * 2.5) {
+                        // User intends parallel - snap to same Y as first click
+                        snapped.y = firstClick.y;
+                        // Also round X to grid but allow any X to the right
+                        snapped.x = Math.round(x / GRID_SIZE) * GRID_SIZE;
+                        if (snapped.x < firstClick.x) snapped.x = firstClick.x + GRID_SIZE;
+                    }
+                    
+                    gameState.rays.push({
+                        x1: firstClick.x,
+                        y1: firstClick.y,
+                        x2: snapped.x,
+                        y2: snapped.y
+                    });
+                    clickCount = 0;
+                    firstClick = null;
+                    
+                    // Allow placing image after 1+ rays
+                    if (gameState.rays.length >= 1) {
+                        document.getElementById('placeImageBtn').style.display = 'inline-block';
                         if (gameState.rays.length >= 2) {
-                            document.getElementById('placeImageBtn').style.display = 'inline-block';
+                            document.getElementById('modeIndicator').textContent = 'Ready! Click "Place Image"';
+                        } else {
+                            document.getElementById('modeIndicator').textContent = 'Draw more rays or Place Image';
                         }
-                        drawScene();
                     }
-                } else if (gameState.mode === 'placingImage') {
-                    gameState.imagePoints.push(snapped);
-                    if (gameState.imagePoints.length === 2) {
-                        checkAnswer();
-                    }
+                    
                     drawScene();
                 }
+            } else if (gameState.mode === 'placingImage') {
+                gameState.imagePoints.push(snapped);
+                
+                if (gameState.imagePoints.length === 2) {
+                    checkAnswer();
+                }
+                
+                drawScene();
             }
         }
 
         function undoLastRay() {
             if (gameState.rays.length > 0) {
                 gameState.rays.pop();
-                if (gameState.rays.length < 2) {
+                
+                if (gameState.rays.length === 0) {
                     document.getElementById('placeImageBtn').style.display = 'none';
+                    document.getElementById('modeIndicator').textContent = 'Drawing Rays (Draw at least 2)';
+                } else if (gameState.rays.length === 1) {
+                    document.getElementById('modeIndicator').textContent = 'Draw more rays or Place Image';
+                } else {
+                    document.getElementById('modeIndicator').textContent = 'Ready! Click "Place Image"';
                 }
+                
                 drawScene();
             }
             clickCount = 0;
@@ -1322,9 +1328,17 @@
         function cancelPlacingImage() {
             gameState.mode = 'drawingRays';
             gameState.imagePoints = [];
-            document.getElementById('modeIndicator').textContent = 'Drawing Rays';
-            document.getElementById('cancelImageBtn').style.display = 'none';
+            
             if (gameState.rays.length >= 2) {
+                document.getElementById('modeIndicator').textContent = 'Ready! Click "Place Image"';
+            } else if (gameState.rays.length === 1) {
+                document.getElementById('modeIndicator').textContent = 'Draw more rays or Place Image';
+            } else {
+                document.getElementById('modeIndicator').textContent = 'Drawing Rays (Draw at least 2)';
+            }
+            
+            document.getElementById('cancelImageBtn').style.display = 'none';
+            if (gameState.rays.length >= 1) {
                 document.getElementById('placeImageBtn').style.display = 'inline-block';
             }
             drawScene();
@@ -1334,13 +1348,18 @@
             const q = gameState.currentQuestion;
             const u = q.objectDistance;
             const f = q.focalLength;
+            
             let v, m, imageHeight;
             
             if (q.lensType === 'convex') {
-                if (Math.abs(u - f) < 5) return null;
+                if (Math.abs(u - f) < 5) {
+                    return null;
+                }
+                
                 v = (f * u) / (u - f);
                 m = v / u;
                 imageHeight = m * q.objectHeight;
+                
                 return {
                     distance: Math.abs(v),
                     height: Math.abs(imageHeight),
@@ -1352,6 +1371,7 @@
                 v = (f * u) / (u + f);
                 m = v / u;
                 imageHeight = m * q.objectHeight;
+                
                 return {
                     distance: Math.abs(v),
                     height: Math.abs(imageHeight),
@@ -1377,16 +1397,19 @@
             } else {
                 expectedImageX = q.lensX - correctImage.distance;
             }
+            
             expectedImageX = Math.round(expectedImageX / GRID_SIZE) * GRID_SIZE;
             
             const expectedImageY1 = q.lensY;
             let expectedImageY2 = correctImage.isInverted ? 
                 q.lensY + correctImage.height : 
                 q.lensY - correctImage.height;
+            
             expectedImageY2 = Math.round(expectedImageY2 / GRID_SIZE) * GRID_SIZE;
             
             const userPoints = gameState.imagePoints;
             let basePoint, topPoint;
+            
             if (Math.abs(userPoints[0].y - q.lensY) < Math.abs(userPoints[1].y - q.lensY)) {
                 basePoint = userPoints[0];
                 topPoint = userPoints[1];
@@ -1395,20 +1418,37 @@
                 topPoint = userPoints[0];
             }
             
-            const tolerance = 20;
+            const tolerance = 5;
             const xCorrect = Math.abs(basePoint.x - expectedImageX) < tolerance;
             const baseYCorrect = Math.abs(basePoint.y - expectedImageY1) < tolerance;
             const topYCorrect = Math.abs(topPoint.y - expectedImageY2) < tolerance;
             const topXCorrect = Math.abs(topPoint.x - expectedImageX) < tolerance;
             
             const imageCorrect = xCorrect && baseYCorrect && topYCorrect && topXCorrect;
-            const raysCorrect = gameState.rays.length >= 2;
             
-            if (imageCorrect && raysCorrect) {
+            // Check rays - validate for feedback, but don't require them all to be correct
+            const rayErrors = validateRays(q);
+            const allRaysCorrect = rayErrors.length === 0;
+            
+            if (imageCorrect) {
+                // Image is correct - this is the main criterion
                 const basePoints = 100;
-                const accuracyBonus = gameState.attemptsRemaining === 3 ? 50 : 
-                                     gameState.attemptsRemaining === 2 ? 25 : 0;
-                const totalPoints = basePoints + accuracyBonus;
+                let accuracyBonus = 0;
+                let rayBonus = 0;
+                
+                // Accuracy bonus based on attempts
+                if (gameState.attemptsRemaining === 3) accuracyBonus = 50;
+                else if (gameState.attemptsRemaining === 2) accuracyBonus = 25;
+                
+                // Ray bonus - full bonus only if all rays correct
+                if (allRaysCorrect) {
+                    rayBonus = 50;
+                } else if (rayErrors.length <= 1) {
+                    rayBonus = 25; // Small error
+                }
+                // No ray bonus if 2+ errors
+                
+                const totalPoints = basePoints + accuracyBonus + rayBonus;
                 
                 gameState.score += totalPoints;
                 gameState.correctCount++;
@@ -1416,48 +1456,169 @@
                 document.getElementById('score').textContent = gameState.score;
                 document.getElementById('correct').textContent = gameState.correctCount;
                 
-                showFeedback(true, `+${totalPoints} points!`);
+                let message = `Correct image! +${totalPoints} points!`;
+                if (!allRaysCorrect) {
+                    message = `Image correct! +${totalPoints} points. However, some rays need work:`;
+                }
+                
+                showFeedback(true, message, allRaysCorrect ? [] : rayErrors);
                 setTimeout(() => {
                     generateQuestion();
-                }, 2000);
+                }, allRaysCorrect ? 2500 : 4000);
             } else {
+                // Image is incorrect
                 gameState.attemptsRemaining--;
-                let errorMsg = 'Not quite right. ';
-                if (!imageCorrect) {
-                    errorMsg += `Image position is off. `;
-                    gameState.mistakes.push('Image position incorrect');
+                
+                let errorMsg = 'Image position incorrect. ';
+                gameState.mistakes.push('Image position incorrect');
+                
+                if (!allRaysCorrect) {
+                    rayErrors.forEach(err => gameState.mistakes.push(err));
                 }
                 
                 if (gameState.attemptsRemaining > 0) {
                     errorMsg += `${gameState.attemptsRemaining} attempts remaining.`;
-                    showFeedback(false, errorMsg);
-                    gameState.mode = 'drawingRays';
-                    gameState.imagePoints = [];
-                    document.getElementById('modeIndicator').textContent = 'Drawing Rays - Try Again';
-                    document.getElementById('attemptsIndicator').style.display = 'inline-block';
-                    document.getElementById('attemptsIndicator').textContent = `Attempts: ${gameState.attemptsRemaining}`;
-                    drawScene();
+                    showFeedback(false, errorMsg, rayErrors);
+                    
+                    setTimeout(() => {
+                        gameState.mode = 'drawingRays';
+                        gameState.imagePoints = [];
+                        document.getElementById('modeIndicator').textContent = 'Drawing Rays - Try Again';
+                        document.getElementById('attemptsIndicator').style.display = 'inline-block';
+                        document.getElementById('attemptsIndicator').textContent = `Attempts: ${gameState.attemptsRemaining}`;
+                        document.getElementById('cancelImageBtn').style.display = 'none';
+                        drawScene();
+                    }, 4000);
                 } else {
-                    showFeedback(false, "Out of attempts. Moving to next question.");
+                    showFeedback(false, "Out of attempts. Moving to next question.", rayErrors);
                     setTimeout(() => {
                         generateQuestion();
-                    }, 2000);
+                    }, 4000);
                 }
             }
         }
 
-        function showFeedback(isCorrect, message) {
+        function validateRays(q) {
+            const errors = [];
+            const tolerance = GRID_SIZE * 1.5;
+            
+            const objX = q.lensX - q.objectDistance;
+            const objTopY = q.lensY - q.objectHeight;
+            const nearF = { x: q.lensX - q.focalLength, y: q.lensY };
+            const farF = { x: q.lensX + q.focalLength, y: q.lensY };
+            
+            const isVirtualImage = q.lensType === 'convex' && q.objectDistance < q.focalLength;
+            
+            // Don't require rays to be present, just check which ones are present and give feedback
+            if (gameState.rays.length === 0) {
+                errors.push('No rays drawn - you should draw at least 2 rays to locate the image');
+                return errors;
+            }
+            
+            if (gameState.rays.length === 1) {
+                errors.push('Only 1 ray drawn - you need at least 2 rays to accurately locate the image');
+            }
+            
+            // Expected rays based on lens type - check which are present
+            if (q.lensType === 'convex' && q.objectDistance > q.focalLength) {
+                // Real image: ideally need object→center, object→nearF, and the parallel ray
+                const hasObjectToCenter = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance &&
+                           Math.abs(ray.x2 - q.lensX) < tolerance && Math.abs(ray.y2 - q.lensY) < tolerance;
+                });
+                
+                const hasObjectToNearF = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance &&
+                           Math.abs(ray.x2 - nearF.x) < tolerance && Math.abs(ray.y2 - nearF.y) < tolerance;
+                });
+                
+                const ray4End = findRay4EndPoint(q);
+                const hasParallelFromLens = ray4End && gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - ray4End.x) < tolerance && Math.abs(ray.y1 - ray4End.y) < tolerance &&
+                           Math.abs(ray.y2 - ray4End.y) < tolerance;
+                });
+                
+                if (!hasObjectToCenter) errors.push('Consider adding: Ray from object top through lens center');
+                if (!hasObjectToNearF) errors.push('Consider adding: Ray from object top toward near focal point');
+                if (hasObjectToNearF && !hasParallelFromLens) errors.push('After drawing object→near F, add parallel ray from lens');
+            }
+            else if (q.lensType === 'convex' && q.objectDistance < q.focalLength) {
+                // Virtual image rays
+                const hasObjectToCenter = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance &&
+                           Math.abs(ray.x2 - q.lensX) < tolerance && Math.abs(ray.y2 - q.lensY) < tolerance;
+                });
+                
+                const hasNearFToObject = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - nearF.x) < tolerance && Math.abs(ray.y1 - nearF.y) < tolerance &&
+                           Math.abs(ray.x2 - objX) < tolerance && Math.abs(ray.y2 - objTopY) < tolerance;
+                });
+                
+                const ray8End = findRay4EndPoint(q);
+                const hasParallelFromLens = ray8End && gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - ray8End.x) < tolerance && Math.abs(ray.y1 - ray8End.y) < tolerance;
+                });
+                
+                if (!hasObjectToCenter) errors.push('Consider adding: Ray from object top through lens center');
+                if (!hasNearFToObject) errors.push('Consider adding: Ray from near focal point toward object');
+                if (hasNearFToObject && !hasParallelFromLens) errors.push('After drawing near F→object, add parallel ray from lens');
+            }
+            else if (q.lensType === 'concave') {
+                const hasObjectToCenter = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance &&
+                           Math.abs(ray.x2 - q.lensX) < tolerance && Math.abs(ray.y2 - q.lensY) < tolerance;
+                });
+                
+                const hasObjectParallel = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance &&
+                           Math.abs(ray.y2 - ray.y1) < tolerance;
+                });
+                
+                const hasObjectToFarF = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - objX) < tolerance && Math.abs(ray.y1 - objTopY) < tolerance &&
+                           Math.abs(ray.x2 - farF.x) < tolerance && Math.abs(ray.y2 - farF.y) < tolerance;
+                });
+                
+                const hasNearFToLens = gameState.rays.some(ray => {
+                    return Math.abs(ray.x1 - nearF.x) < tolerance && Math.abs(ray.y1 - nearF.y) < tolerance &&
+                           Math.abs(ray.x2 - q.lensX) < tolerance;
+                });
+                
+                if (!hasObjectToCenter) errors.push('Consider adding: Ray from object top through lens center');
+                if (!hasObjectParallel && !hasNearFToLens) {
+                    errors.push('Consider adding: Parallel ray from object (or near F to lens)');
+                }
+                if (!hasObjectToFarF) errors.push('Consider adding: Ray from object top toward far focal point');
+            }
+            
+            return errors;
+        }
+
+        function showFeedback(isCorrect, message, rayErrors = []) {
             const feedback = document.getElementById('feedback');
             const title = document.getElementById('feedbackTitle');
             const text = document.getElementById('feedbackText');
+            const rayErrorsList = document.getElementById('feedbackRayErrors');
             
             feedback.className = 'feedback show ' + (isCorrect ? 'correct' : 'incorrect');
             title.textContent = isCorrect ? '✓ Correct!' : '✗ Incorrect';
             text.textContent = message;
             
+            if (rayErrors && rayErrors.length > 0) {
+                rayErrorsList.style.display = 'block';
+                rayErrorsList.innerHTML = '';
+                rayErrors.forEach(error => {
+                    const li = document.createElement('li');
+                    li.textContent = error;
+                    rayErrorsList.appendChild(li);
+                });
+            } else {
+                rayErrorsList.style.display = 'none';
+            }
+            
             setTimeout(() => {
                 feedback.classList.remove('show');
-            }, isCorrect ? 2000 : 3000);
+            }, isCorrect ? 2500 : 4000);
         }
 
         function skipQuestion() {
@@ -1467,20 +1628,25 @@
 
         function endGame() {
             clearInterval(gameState.timerInterval);
+            
             document.querySelector('.game-screen').classList.remove('active');
             document.querySelector('.results-screen').classList.add('active');
+            
             const accuracy = gameState.attemptedCount > 0 ? 
                 Math.round((gameState.correctCount / gameState.attemptedCount) * 100) : 0;
+            
             document.getElementById('finalScore').textContent = gameState.score;
             document.getElementById('finalAttempted').textContent = gameState.attemptedCount;
             document.getElementById('finalCorrect').textContent = gameState.correctCount;
             document.getElementById('finalAccuracy').textContent = accuracy + '%';
+            
             const mistakesUl = document.getElementById('mistakesUl');
             if (gameState.mistakes.length > 0) {
                 const mistakeCounts = {};
                 gameState.mistakes.forEach(m => {
                     mistakeCounts[m] = (mistakeCounts[m] || 0) + 1;
                 });
+                
                 mistakesUl.innerHTML = '';
                 Object.entries(mistakeCounts).forEach(([mistake, count]) => {
                     const li = document.createElement('li');
