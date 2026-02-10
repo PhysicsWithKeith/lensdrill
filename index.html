@@ -520,6 +520,7 @@
         let gameState;
         let clickCount = 0;
         let firstClick = null;
+        let mousePos = null;
         
         document.addEventListener('DOMContentLoaded', function() {
             canvas = document.getElementById('gameCanvas');
@@ -546,6 +547,7 @@
             canvas.addEventListener('touchend', handleCanvasInteraction);
             canvas.addEventListener('touchstart', (e) => e.preventDefault());
             canvas.addEventListener('touchmove', (e) => e.preventDefault());
+            canvas.addEventListener('mousemove', handleMouseMove);
         });
         
         function resizeCanvas() {
@@ -792,6 +794,23 @@
                     ctx.fill();
                 });
                 
+                // Draw preview line from first point to mouse cursor
+                if (gameState.imagePoints.length === 1 && mousePos) {
+                    ctx.strokeStyle = 'rgba(155, 89, 182, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(gameState.imagePoints[0].x, gameState.imagePoints[0].y);
+                    ctx.lineTo(mousePos.x, mousePos.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Draw preview dot at cursor
+                    ctx.fillStyle = 'rgba(155, 89, 182, 0.4)';
+                    ctx.beginPath();
+                    ctx.arc(mousePos.x, mousePos.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
                 if (gameState.imagePoints.length === 2) {
                     const q = gameState.currentQuestion;
                     let basePoint, topPoint;
@@ -805,6 +824,26 @@
                     }
                     
                     drawObjectImageArrow(ctx, basePoint.x, basePoint.y, topPoint.x, topPoint.y, 10, '#9b59b6', 3);
+                }
+            }
+            
+            // Draw ray preview when first click placed
+            if (gameState.mode === 'drawingRays' && clickCount === 1 && firstClick) {
+                // Draw the first click dot
+                ctx.fillStyle = 'rgba(102, 126, 234, 0.7)';
+                ctx.beginPath();
+                ctx.arc(firstClick.x, firstClick.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                // Draw preview line to cursor
+                if (mousePos) {
+                    ctx.strokeStyle = 'rgba(102, 126, 234, 0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(firstClick.x, firstClick.y);
+                    ctx.lineTo(mousePos.x, mousePos.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
             }
         }
@@ -891,8 +930,11 @@
             const click2AtCenter = click2AtLens && Math.abs(ray.y2 - q.lensY) < pointTolerance;
             
             // Check for special ray4 snapping points
+            // Use a generous tolerance here — the snapping will have landed the click close to
+            // ray4Point, but it may not be pixel-perfect (especially when ray is off-grid).
             const ray4Point = findRay4EndPoint(q);
-            const click1AtRay4 = ray4Point && Math.abs(ray.x1 - ray4Point.x) < pointTolerance && Math.abs(ray.y1 - ray4Point.y) < pointTolerance;
+            const ray4Tolerance = ray4Point ? GRID_SIZE * 2 : 0;
+            const click1AtRay4 = ray4Point && Math.abs(ray.x1 - ray4Point.x) < ray4Tolerance && Math.abs(ray.y1 - ray4Point.y) < ray4Tolerance;
             
             const ray13Point = findRay13EndPoint(q);
             const click1AtRay13 = ray13Point && Math.abs(ray.x1 - ray13Point.x) < pointTolerance && Math.abs(ray.y1 - ray13Point.y) < pointTolerance;
@@ -1087,22 +1129,41 @@
         }
 
         function findRay4EndPoint(q) {
-            // Find where ray from object top to near F hits lens
+            // Find where the "towards-nearF" ray hits the lens.
+            // Rule 4 (real image): ray goes object top → near F
+            // Rule 8 (virtual image): ray goes near F → object top
+            // In both cases the physical ray travels from object toward lens along the
+            // line through objTop and nearF, hitting the lens at the same point.
             const objX = q.lensX - q.objectDistance;
             const objTopY = q.lensY - q.objectHeight;
             const nearF = { x: q.lensX - q.focalLength, y: q.lensY };
             
             for (const ray of gameState.rays) {
-                const pointTolerance = GRID_SIZE * 0.8;
+                const pointTolerance = GRID_SIZE * 1.2;
+                
+                // Rule 4: object top → near F
                 const click1AtObjTop = Math.abs(ray.x1 - objX) < pointTolerance && Math.abs(ray.y1 - objTopY) < pointTolerance;
-                const click2AtNearF = Math.abs(ray.x2 - nearF.x) < pointTolerance && Math.abs(ray.y2 - nearF.y) < pointTolerance;
+                const click2AtNearF  = Math.abs(ray.x2 - nearF.x) < pointTolerance && Math.abs(ray.y2 - nearF.y) < pointTolerance;
+                
+                // Rule 8: near F → object top
+                const click1AtNearF  = Math.abs(ray.x1 - nearF.x) < pointTolerance && Math.abs(ray.y1 - nearF.y) < pointTolerance;
+                const click2AtObjTop = Math.abs(ray.x2 - objX) < pointTolerance && Math.abs(ray.y2 - objTopY) < pointTolerance;
                 
                 if (click1AtObjTop && click2AtNearF) {
+                    // Real image direction: line from objTop through nearF extended to lens
                     const dx = ray.x2 - ray.x1;
                     const dy = ray.y2 - ray.y1;
                     const t = (q.lensX - ray.x1) / dx;
-                    const yAtLens = ray.y1 + t * dy;
-                    return { x: q.lensX, y: yAtLens };
+                    return { x: q.lensX, y: ray.y1 + t * dy };
+                }
+                
+                if (click1AtNearF && click2AtObjTop) {
+                    // Virtual image direction: line from nearF through objTop extended to lens
+                    // The real physical ray goes from objTop in the direction (objTop - nearF)
+                    const dx = objX - nearF.x;
+                    const dy = objTopY - nearF.y;
+                    const t = (q.lensX - objX) / dx;
+                    return { x: q.lensX, y: objTopY + t * dy };
                 }
             }
             
@@ -1207,6 +1268,106 @@
             };
         }
 
+        // ── Shared snap function used by both clicks and live preview ──────────
+        // rawX, rawY: canvas-space coordinates (already scaled)
+        // isSecondRayClick: true when this is the 2nd click of a ray (parallel-snap applies)
+        // isImageClick: true when placing image (image-position snap applies)
+        function computeSnap(rawX, rawY, isSecondRayClick, isImageClick) {
+            const q = gameState.currentQuestion;
+            const objX  = q.lensX - q.objectDistance;
+            const objTopY = q.lensY - q.objectHeight;
+
+            // 1. Start from grid
+            let sx = Math.round(rawX / GRID_SIZE) * GRID_SIZE;
+            let sy = Math.round(rawY / GRID_SIZE) * GRID_SIZE;
+
+            if (isImageClick) {
+                const correctImage = calculateImagePosition();
+                if (correctImage) {
+                    const imgX = correctImage.side === 'right'
+                        ? q.lensX + correctImage.distance
+                        : q.lensX - correctImage.distance;
+                    const imgBaseY = q.lensY;
+                    const imgTopY  = correctImage.isInverted
+                        ? q.lensY + correctImage.height
+                        : q.lensY - correctImage.height;
+                    const tol = q.lensType === 'concave' ? GRID_SIZE * 4 : GRID_SIZE * 2.5;
+
+                    const dBase = Math.sqrt((rawX - imgX) ** 2 + (rawY - imgBaseY) ** 2);
+                    if (dBase < tol) return { x: imgX, y: imgBaseY };
+
+                    const dTop  = Math.sqrt((rawX - imgX) ** 2 + (rawY - imgTopY)  ** 2);
+                    if (dTop  < tol) return { x: imgX, y: imgTopY  };
+                }
+                return { x: sx, y: sy };
+            }
+
+            // 2. Build priority-ordered list of special points
+            const ray4Point  = findRay4EndPoint(q);
+            const ray13Point = findRay13EndPoint(q);
+            const snapPoints = [];
+
+            if (ray4Point)  snapPoints.push({ x: ray4Point.x,  y: ray4Point.y,  tol: GRID_SIZE * 2.5 });
+            if (ray13Point) snapPoints.push({ x: ray13Point.x, y: ray13Point.y, tol: GRID_SIZE * 2.5 });
+
+            const tol2 = GRID_SIZE * 1.2;
+            snapPoints.push(
+                { x: q.lensX,                      y: q.lensY, tol: tol2 },
+                { x: q.lensX - q.focalLength,       y: q.lensY, tol: tol2 },
+                { x: q.lensX + q.focalLength,       y: q.lensY, tol: tol2 },
+                { x: objX,  y: objTopY,  tol: tol2 },
+                { x: objX,  y: q.lensY,  tol: tol2 }
+            );
+
+            let snappedToSpecial = false;
+            for (const p of snapPoints) {
+                if (Math.sqrt((rawX - p.x) ** 2 + (rawY - p.y) ** 2) < p.tol) {
+                    sx = p.x; sy = p.y;
+                    snappedToSpecial = true;
+                    break;
+                }
+            }
+
+            // Snap x to lens axis
+            if (!snappedToSpecial && Math.abs(rawX - q.lensX) < GRID_SIZE * 1.2) sx = q.lensX;
+
+            // 3. Parallel-snap when drawing the second point of Ray 9 / Ray 5 / Ray 14
+            if (isSecondRayClick && firstClick) {
+                const isFromRay4  = ray4Point  && Math.abs(firstClick.x - ray4Point.x)  < GRID_SIZE * 2 && Math.abs(firstClick.y - ray4Point.y)  < GRID_SIZE * 2;
+                const isFromRay13 = ray13Point && Math.abs(firstClick.x - ray13Point.x) < GRID_SIZE * 2 && Math.abs(firstClick.y - ray13Point.y) < GRID_SIZE * 2;
+                if ((isFromRay4 || isFromRay13) && Math.abs(rawY - firstClick.y) < GRID_SIZE * 2) {
+                    sy = firstClick.y; // lock to exact parallel
+                }
+            }
+
+            return { x: sx, y: sy };
+        }
+        // ────────────────────────────────────────────────────────────────────────
+
+        function handleMouseMove(e) {
+            if (!gameState.currentQuestion) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const rawX = (e.clientX - rect.left) * scaleX;
+            const rawY = (e.clientY - rect.top)  * scaleY;
+
+            const isSecondRay = gameState.mode === 'drawingRays' && clickCount === 1;
+            const isImage     = gameState.mode === 'placingImage';
+
+            mousePos = computeSnap(rawX, rawY, isSecondRay, isImage);
+
+            if (isSecondRay || isImage) drawScene();
+
+            if (isImage) {
+                if (gameState.imagePoints.length === 0) {
+                    document.getElementById('modeIndicator').textContent = 'Click to place image BASE (on the axis)';
+                } else if (gameState.imagePoints.length === 1) {
+                    document.getElementById('modeIndicator').textContent = 'Now click to place image TIP ↑';
+                }
+            }
+        }
+
         function handleCanvasInteraction(e) {
             e.preventDefault();
             
@@ -1228,71 +1389,19 @@
             y *= scaleY;
             
             const q = gameState.currentQuestion;
-            const objX = q.lensX - q.objectDistance;
-            const objTopY = q.lensY - q.objectHeight;
             
-            // Start with grid snapping
-            let snapped = { x: Math.round(x / GRID_SIZE) * GRID_SIZE, y: Math.round(y / GRID_SIZE) * GRID_SIZE };
-            
-            // Special points - ORDER MATTERS! Ray end points FIRST (highest priority)
-            const snapTolerance = GRID_SIZE * 1.2;
-            const specialPoints = [];
-            
-            // PRIORITY 1: Ray end points (these must snap first!)
-            const ray4Point = findRay4EndPoint(q);
-            if (ray4Point) specialPoints.push(ray4Point);
-            
-            const ray13Point = findRay13EndPoint(q);
-            if (ray13Point) specialPoints.push(ray13Point);
-            
-            // PRIORITY 2: Other important points
-            specialPoints.push(
-                { x: q.lensX, y: q.lensY },                      // Lens center
-                { x: q.lensX - q.focalLength, y: q.lensY },      // Near focal point
-                { x: q.lensX + q.focalLength, y: q.lensY },      // Far focal point
-                { x: objX, y: objTopY },                         // Object top
-                { x: objX, y: q.lensY }                          // Object base
-            );
-            
-            // Check if click is near any special point (first match wins)
-            for (let point of specialPoints) {
-                const dist = Math.sqrt((x - point.x) ** 2 + (y - point.y) ** 2);
-                if (dist < snapTolerance) {
-                    snapped = { x: point.x, y: point.y };
-                    break;
-                }
-            }
-            
-            // Also check for clicking on lens line (not just center)
-            if (Math.abs(x - q.lensX) < GRID_SIZE * 1.2) {
-                snapped.x = q.lensX;
-            }
+            // Determine context for snapping
+            const isSecondRayClick = gameState.mode === 'drawingRays' && clickCount === 1;
+            const isImageClick     = gameState.mode === 'placingImage';
+            let snapped = computeSnap(x, y, isSecondRayClick, isImageClick);
             
             if (gameState.mode === 'drawingRays') {
                 if (clickCount === 0) {
                     firstClick = snapped;
                     clickCount = 1;
-                    
-                    ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
-                    ctx.beginPath();
-                    ctx.arc(snapped.x, snapped.y, 10, 0, Math.PI * 2);
-                    ctx.fill();
+                    drawScene();
                 } else {
-                    // Second click - check if it should snap to parallel for rules 5, 9, 14
-                    const parallelTolerance = GRID_SIZE * 1.5;
-                    
-                    const isFromRay4 = ray4Point && 
-                                      Math.abs(firstClick.x - ray4Point.x) < GRID_SIZE * 0.5 && 
-                                      Math.abs(firstClick.y - ray4Point.y) < GRID_SIZE * 0.5;
-                    const isFromRay13 = ray13Point && 
-                                       Math.abs(firstClick.x - ray13Point.x) < GRID_SIZE * 0.5 && 
-                                       Math.abs(firstClick.y - ray13Point.y) < GRID_SIZE * 0.5;
-                    
-                    // If starting from ray4/ray13 end and clicking roughly parallel, snap to parallel
-                    if ((isFromRay4 || isFromRay13) && Math.abs(y - firstClick.y) < parallelTolerance) {
-                        snapped.y = firstClick.y; // Force parallel
-                    }
-                    
+                    // computeSnap already handled parallel-snap; just push the ray
                     gameState.rays.push({
                         x1: firstClick.x,
                         y1: firstClick.y,
@@ -1302,7 +1411,6 @@
                     clickCount = 0;
                     firstClick = null;
                     
-                    // Allow placing image after 1+ rays
                     if (gameState.rays.length >= 1) {
                         document.getElementById('placeImageBtn').style.display = 'inline-block';
                         if (gameState.rays.length >= 2) {
@@ -1311,48 +1419,12 @@
                             document.getElementById('modeIndicator').textContent = 'Draw more rays or Place Image';
                         }
                     }
-                    
                     drawScene();
                 }
             } else if (gameState.mode === 'placingImage') {
-                // Calculate where the image SHOULD be
-                const correctImage = calculateImagePosition();
-                
-                if (correctImage) {
-                    let expectedImageX;
-                    if (correctImage.side === 'right') {
-                        expectedImageX = q.lensX + correctImage.distance;
-                    } else {
-                        expectedImageX = q.lensX - correctImage.distance;
-                    }
-                    
-                    const expectedImageBaseY = q.lensY;
-                    let expectedImageTopY = correctImage.isInverted ? 
-                        q.lensY + correctImage.height : 
-                        q.lensY - correctImage.height;
-                    
-                    // If clicking near the correct position, snap to it
-                    const imageSnapTolerance = GRID_SIZE * 2.5; // More lenient for image placement
-                    
-                    // Check if clicking near correct base position
-                    const distToBase = Math.sqrt((x - expectedImageX) ** 2 + (y - expectedImageBaseY) ** 2);
-                    if (distToBase < imageSnapTolerance) {
-                        snapped = { x: expectedImageX, y: expectedImageBaseY };
-                    }
-                    
-                    // Check if clicking near correct top position  
-                    const distToTop = Math.sqrt((x - expectedImageX) ** 2 + (y - expectedImageTopY) ** 2);
-                    if (distToTop < imageSnapTolerance) {
-                        snapped = { x: expectedImageX, y: expectedImageTopY };
-                    }
-                }
-                
+                // computeSnap already applied image-position snapping
                 gameState.imagePoints.push(snapped);
-                
-                if (gameState.imagePoints.length === 2) {
-                    checkAnswer();
-                }
-                
+                if (gameState.imagePoints.length === 2) checkAnswer();
                 drawScene();
             }
         }
@@ -1386,7 +1458,7 @@
         function startPlacingImage() {
             gameState.mode = 'placingImage';
             gameState.imagePoints = [];
-            document.getElementById('modeIndicator').textContent = 'Placing Image (click base, then top)';
+            document.getElementById('modeIndicator').textContent = 'Click to place image BASE (on the axis)';
             document.getElementById('placeImageBtn').style.display = 'none';
             document.getElementById('cancelImageBtn').style.display = 'inline-block';
         }
@@ -1544,12 +1616,14 @@
                     showFeedback(false, errorMsg, rayErrors);
                     
                     setTimeout(() => {
-                        gameState.mode = 'drawingRays';
+                        // Go straight back to placing image — no need to draw another ray
+                        gameState.mode = 'placingImage';
                         gameState.imagePoints = [];
-                        document.getElementById('modeIndicator').textContent = 'Drawing Rays - Try Again';
+                        document.getElementById('modeIndicator').textContent = 'Try Again — Place Image';
                         document.getElementById('attemptsIndicator').style.display = 'inline-block';
                         document.getElementById('attemptsIndicator').textContent = `Attempts: ${gameState.attemptsRemaining}`;
-                        document.getElementById('cancelImageBtn').style.display = 'none';
+                        document.getElementById('cancelImageBtn').style.display = 'inline-block';
+                        document.getElementById('placeImageBtn').style.display = 'none';
                         drawScene();
                     }, 4000);
                 } else {
